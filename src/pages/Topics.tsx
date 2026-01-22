@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 import { 
   Search, 
   ChevronRight, 
@@ -16,165 +17,106 @@ import {
   Percent,
   Triangle,
   Circle,
-  Binary
+  Binary,
+  Ruler,
+  CircleDot,
+  Sigma,
+  Dice5,
+  Equal,
+  Superscript,
+  Variable,
+  Lock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Tables } from '@/integrations/supabase/types';
 
-interface Topic {
-  id: string;
-  title: string;
-  description: string;
-  waec_chapter: string;
-  icon: string;
-  estimated_duration_minutes: number;
-  order_index: number;
-  progress?: number;
-  lessonsCompleted?: number;
-  totalLessons?: number;
+interface TopicWithProgress extends Tables<'topics'> {
+  progress: number;
+  lessonsCompleted: number;
+  totalLessons: number;
 }
 
-// Mock topics aligned with WAEC syllabus
-const mockTopics: Topic[] = [
-  {
-    id: '1',
-    title: 'Number Bases',
-    description: 'Convert between different number bases and perform operations',
-    waec_chapter: 'Number and Numeration',
-    icon: 'binary',
-    estimated_duration_minutes: 45,
-    order_index: 1,
-    progress: 75,
-    lessonsCompleted: 3,
-    totalLessons: 4
-  },
-  {
-    id: '2',
-    title: 'Fractions, Decimals & Percentages',
-    description: 'Operations with fractions, decimals and percentage calculations',
-    waec_chapter: 'Number and Numeration',
-    icon: 'percent',
-    estimated_duration_minutes: 60,
-    order_index: 2,
-    progress: 40,
-    lessonsCompleted: 2,
-    totalLessons: 5
-  },
-  {
-    id: '3',
-    title: 'Algebraic Expressions',
-    description: 'Simplification, expansion and factorization of algebraic expressions',
-    waec_chapter: 'Algebraic Processes',
-    icon: 'calculator',
-    estimated_duration_minutes: 90,
-    order_index: 3,
-    progress: 0,
-    lessonsCompleted: 0,
-    totalLessons: 6
-  },
-  {
-    id: '4',
-    title: 'Linear Equations',
-    description: 'Solve linear equations in one and two variables',
-    waec_chapter: 'Algebraic Processes',
-    icon: 'book',
-    estimated_duration_minutes: 60,
-    order_index: 4,
-    progress: 0,
-    lessonsCompleted: 0,
-    totalLessons: 4
-  },
-  {
-    id: '5',
-    title: 'Quadratic Equations',
-    description: 'Solve quadratic equations by factorization and formula',
-    waec_chapter: 'Algebraic Processes',
-    icon: 'calculator',
-    estimated_duration_minutes: 75,
-    order_index: 5,
-    progress: 0,
-    lessonsCompleted: 0,
-    totalLessons: 5
-  },
-  {
-    id: '6',
-    title: 'Geometry - Angles',
-    description: 'Properties of angles, parallel lines and polygons',
-    waec_chapter: 'Geometry and Mensuration',
-    icon: 'triangle',
-    estimated_duration_minutes: 60,
-    order_index: 6,
-    progress: 0,
-    lessonsCompleted: 0,
-    totalLessons: 4
-  },
-  {
-    id: '7',
-    title: 'Geometry - Circles',
-    description: 'Circle theorems and properties',
-    waec_chapter: 'Geometry and Mensuration',
-    icon: 'circle',
-    estimated_duration_minutes: 60,
-    order_index: 7,
-    progress: 0,
-    lessonsCompleted: 0,
-    totalLessons: 4
-  },
-  {
-    id: '8',
-    title: 'Mensuration',
-    description: 'Area, perimeter, surface area and volume calculations',
-    waec_chapter: 'Geometry and Mensuration',
-    icon: 'shapes',
-    estimated_duration_minutes: 90,
-    order_index: 8,
-    progress: 0,
-    lessonsCompleted: 0,
-    totalLessons: 6
-  },
-  {
-    id: '9',
-    title: 'Trigonometry',
-    description: 'Trigonometric ratios and applications',
-    waec_chapter: 'Geometry and Mensuration',
-    icon: 'triangle',
-    estimated_duration_minutes: 75,
-    order_index: 9,
-    progress: 0,
-    lessonsCompleted: 0,
-    totalLessons: 5
-  },
-  {
-    id: '10',
-    title: 'Statistics',
-    description: 'Mean, median, mode and data representation',
-    waec_chapter: 'Statistics and Probability',
-    icon: 'bar-chart',
-    estimated_duration_minutes: 60,
-    order_index: 10,
-    progress: 0,
-    lessonsCompleted: 0,
-    totalLessons: 4
-  },
-];
-
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  'binary': Binary,
-  'percent': Percent,
-  'calculator': Calculator,
+  'Calculator': Calculator,
+  'Percent': Percent,
+  'Superscript': Superscript,
+  'Variable': Variable,
+  'Equal': Equal,
+  'Parabola': Calculator,
+  'CircleDot': CircleDot,
+  'Ruler': Ruler,
+  'Triangle': Triangle,
+  'Sigma': Sigma,
+  'BarChart3': BarChart3,
+  'Dice5': Dice5,
+  'Binary': Binary,
+  'Circle': Circle,
+  'Shapes': Shapes,
   'book': BookOpen,
-  'triangle': Triangle,
-  'circle': Circle,
-  'shapes': Shapes,
-  'bar-chart': BarChart3,
 };
 
 export default function Topics() {
   const { user } = useAuth();
-  const [topics, setTopics] = useState<Topic[]>(mockTopics);
+  const [topics, setTopics] = useState<TopicWithProgress[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
 
-  const chapters = [...new Set(topics.map(t => t.waec_chapter))];
+  useEffect(() => {
+    fetchTopics();
+  }, [user]);
+
+  const fetchTopics = async () => {
+    try {
+      // Fetch topics
+      const { data: topicsData, error: topicsError } = await supabase
+        .from('topics')
+        .select('*')
+        .order('order_index');
+
+      if (topicsError) throw topicsError;
+
+      // Fetch lesson counts per topic
+      const { data: lessonsData } = await supabase
+        .from('lessons')
+        .select('topic_id');
+
+      // Fetch user progress if logged in
+      let progressData: Tables<'user_progress'>[] = [];
+      if (user) {
+        const { data } = await supabase
+          .from('user_progress')
+          .select('*')
+          .eq('user_id', user.id);
+        progressData = data || [];
+      }
+
+      // Combine data
+      const topicsWithProgress: TopicWithProgress[] = (topicsData || []).map(topic => {
+        const topicLessons = lessonsData?.filter(l => l.topic_id === topic.id) || [];
+        const completedLessons = progressData.filter(
+          p => p.topic_id === topic.id && p.status === 'completed'
+        ).length;
+        const totalLessons = topicLessons.length;
+        const progress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+
+        return {
+          ...topic,
+          progress,
+          lessonsCompleted: completedLessons,
+          totalLessons,
+        };
+      });
+
+      setTopics(topicsWithProgress);
+    } catch (error) {
+      console.error('Error fetching topics:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const chapters = [...new Set(topics.map(t => t.waec_chapter).filter(Boolean))] as string[];
 
   const filteredTopics = topics.filter(topic => {
     const matchesSearch = topic.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -183,9 +125,25 @@ export default function Topics() {
     return matchesSearch && matchesChapter;
   });
 
-  const totalProgress = Math.round(
-    topics.reduce((acc, t) => acc + (t.progress || 0), 0) / topics.length
-  );
+  const totalProgress = topics.length > 0 
+    ? Math.round(topics.reduce((acc, t) => acc + (t.progress || 0), 0) / topics.length)
+    : 0;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background pb-24">
+        <div className="px-4 py-4">
+          <Skeleton className="h-8 w-48 mb-4" />
+          <Skeleton className="h-10 w-full mb-4" />
+          <div className="space-y-3">
+            {[1, 2, 3, 4, 5].map(i => (
+              <Skeleton key={i} className="h-28 w-full" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -241,61 +199,77 @@ export default function Topics() {
 
       {/* Topics List */}
       <div className="px-4 space-y-3">
-        {filteredTopics.map((topic) => {
-          const IconComponent = iconMap[topic.icon] || BookOpen;
-          
-          return (
-            <Link key={topic.id} to={`/topics/${topic.id}`}>
-              <Card className="hover:shadow-md transition-all hover:border-primary/30">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-4">
-                    <div className={cn(
-                      "h-12 w-12 rounded-xl flex items-center justify-center shrink-0",
-                      topic.progress && topic.progress > 0
-                        ? "bg-primary/10 text-primary"
-                        : "bg-muted text-muted-foreground"
-                    )}>
-                      <IconComponent className="h-6 w-6" />
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <h3 className="font-semibold">{topic.title}</h3>
-                          <p className="text-sm text-muted-foreground line-clamp-1">
-                            {topic.description}
-                          </p>
-                        </div>
-                        <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+        {filteredTopics.length === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <p className="text-muted-foreground">No topics found</p>
+            </CardContent>
+          </Card>
+        ) : (
+          filteredTopics.map((topic) => {
+            const IconComponent = iconMap[topic.icon || 'book'] || BookOpen;
+            
+            return (
+              <Link key={topic.id} to={`/topics/${topic.id}`}>
+                <Card className={cn(
+                  "hover:shadow-md transition-all hover:border-primary/30",
+                  topic.is_premium && "border-accent/30"
+                )}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-4">
+                      <div className={cn(
+                        "h-12 w-12 rounded-xl flex items-center justify-center shrink-0",
+                        topic.progress > 0
+                          ? "bg-primary/10 text-primary"
+                          : "bg-muted text-muted-foreground"
+                      )}>
+                        <IconComponent className="h-6 w-6" />
                       </div>
                       
-                      <div className="flex items-center gap-3 mt-2">
-                        <div className="flex-1">
-                          <Progress 
-                            value={topic.progress || 0} 
-                            className="h-1.5" 
-                          />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold">{topic.title}</h3>
+                              {topic.is_premium && (
+                                <Lock className="h-3.5 w-3.5 text-accent" />
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground line-clamp-1">
+                              {topic.description}
+                            </p>
+                          </div>
+                          <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
                         </div>
-                        <span className="text-xs text-muted-foreground">
-                          {topic.lessonsCompleted}/{topic.totalLessons} lessons
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 mt-2">
-                        <Badge variant="secondary" className="text-xs">
-                          {topic.waec_chapter}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          ~{topic.estimated_duration_minutes} min
-                        </span>
+                        
+                        <div className="flex items-center gap-3 mt-2">
+                          <div className="flex-1">
+                            <Progress 
+                              value={topic.progress} 
+                              className="h-1.5" 
+                            />
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {topic.lessonsCompleted}/{topic.totalLessons} lessons
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 mt-2">
+                          <Badge variant="secondary" className="text-xs">
+                            {topic.waec_chapter}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            ~{topic.estimated_duration_minutes} min
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          );
-        })}
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })
+        )}
       </div>
     </div>
   );
