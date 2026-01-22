@@ -51,18 +51,49 @@ export default function Dashboard() {
         .from('study_streaks')
         .select('*')
         .eq('user_id', user!.id)
-        .single();
+        .maybeSingle();
       
       setStreak(streakData);
 
-      // For now, use mock data for topics since we haven't seeded them yet
-      setRecentTopics([
-        { id: '1', title: 'Number Bases', progress: 75, lessonsCompleted: 3, totalLessons: 4 },
-        { id: '2', title: 'Algebraic Expressions', progress: 40, lessonsCompleted: 2, totalLessons: 5 },
-        { id: '3', title: 'Linear Equations', progress: 0, lessonsCompleted: 0, totalLessons: 4 },
-      ]);
-      
-      setTotalProgress(35);
+      // Fetch topics with lessons and progress
+      const { data: topicsData } = await supabase
+        .from('topics')
+        .select('id, title')
+        .order('order_index')
+        .limit(3);
+
+      const { data: lessonsData } = await supabase
+        .from('lessons')
+        .select('topic_id');
+
+      const { data: progressData } = await supabase
+        .from('user_progress')
+        .select('*')
+        .eq('user_id', user!.id);
+
+      // Combine data
+      const topicsWithProgress = (topicsData || []).map(topic => {
+        const topicLessons = lessonsData?.filter(l => l.topic_id === topic.id) || [];
+        const completedLessons = (progressData || []).filter(
+          p => p.topic_id === topic.id && p.status === 'completed'
+        ).length;
+        const totalLessons = topicLessons.length || 4; // Default for display
+        const progress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+
+        return {
+          ...topic,
+          progress,
+          lessonsCompleted: completedLessons,
+          totalLessons,
+        };
+      });
+
+      setRecentTopics(topicsWithProgress);
+
+      // Calculate total progress
+      const allTopicsCount = 12; // Total WAEC topics
+      const completedTopics = (progressData || []).filter(p => p.status === 'completed').length;
+      setTotalProgress(Math.round((completedTopics / (allTopicsCount * 4)) * 100)); // Estimate 4 lessons per topic
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
