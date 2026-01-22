@@ -26,13 +26,16 @@ import {
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
-const paceOptions = [
+type LearningPace = 'slow' | 'average' | 'fast';
+type LearningMode = 'step-by-step' | 'practice-heavy' | 'fast-revision' | 'challenge';
+
+const paceOptions: { id: LearningPace; label: string; icon: typeof Turtle; description: string }[] = [
   { id: 'slow', label: 'Slow & Steady', icon: Turtle, description: 'Detailed explanations, more examples' },
   { id: 'average', label: 'Balanced', icon: Gauge, description: 'Standard pace with good coverage' },
   { id: 'fast', label: 'Quick Learner', icon: Rocket, description: 'Concise content, challenge-focused' },
 ];
 
-const modeOptions = [
+const modeOptions: { id: LearningMode; label: string; icon: typeof BookOpen }[] = [
   { id: 'step-by-step', label: 'Step-by-Step', icon: BookOpen },
   { id: 'practice-heavy', label: 'Practice Heavy', icon: Target },
   { id: 'fast-revision', label: 'Fast Revision', icon: Zap },
@@ -43,8 +46,8 @@ export default function Profile() {
   const navigate = useNavigate();
   const { user, profile, signOut, updateProfile } = useAuth();
   const { toast } = useToast();
-  const [selectedPace, setSelectedPace] = useState(profile?.learning_pace || 'average');
-  const [selectedMode, setSelectedMode] = useState(profile?.preferred_mode || 'step-by-step');
+  const [selectedPace, setSelectedPace] = useState<LearningPace>((profile?.learning_pace as LearningPace) || 'average');
+  const [selectedMode, setSelectedMode] = useState<LearningMode>((profile?.preferred_mode as LearningMode) || 'step-by-step');
   const [isDark, setIsDark] = useState(false);
 
   const handlePaceChange = async (pace: 'slow' | 'average' | 'fast') => {

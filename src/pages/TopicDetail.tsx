@@ -48,8 +48,7 @@ type LearningMode = 'step-by-step' | 'practice-heavy' | 'fast-revision' | 'chall
 export default function TopicDetail() {
   const { topicId } = useParams();
   const { profile } = useAuth();
-  const [selectedMode, setSelectedMode] = useState<LearningMode>(profile?.preferred_mode || 'step-by-step');
-  const [selectedMode, setSelectedMode] = useState(profile?.preferred_mode || 'step-by-step');
+  const [selectedMode, setSelectedMode] = useState<LearningMode>((profile?.preferred_mode as LearningMode) || 'step-by-step');
   const [lessons, setLessons] = useState<Lesson[]>(mockLessons);
 
   const completedLessons = lessons.filter(l => l.isCompleted).length;
@@ -119,7 +118,7 @@ export default function TopicDetail() {
                     "cursor-pointer transition-all",
                     isSelected ? "border-primary ring-1 ring-primary" : "hover:border-muted-foreground/30"
                   )}
-                  onClick={() => setSelectedMode(mode.id)}
+                  onClick={() => setSelectedMode(mode.id as LearningMode)}
                 >
                   <CardContent className="p-3">
                     <div className="flex items-center gap-2">
