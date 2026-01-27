@@ -10,6 +10,8 @@ import { AppLayout } from "@/components/AppLayout";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
+import Subjects from "./pages/Subjects";
+import SubjectDetail from "./pages/SubjectDetail";
 import Topics from "./pages/Topics";
 import TopicDetail from "./pages/TopicDetail";
 import Lesson from "./pages/Lesson";
@@ -34,6 +36,8 @@ const App = () => (
             } />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/subjects" element={<Subjects />} />
+              <Route path="/subjects/:subjectId" element={<SubjectDetail />} />
               <Route path="/topics" element={<Topics />} />
               <Route path="/topics/:topicId" element={<TopicDetail />} />
               <Route path="/lesson/:lessonId" element={<Lesson />} />

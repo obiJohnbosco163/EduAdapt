@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOfflineStorage } from '@/hooks/useOfflineStorage';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,247 +9,291 @@ import { Progress } from '@/components/ui/progress';
 import { 
   Download, 
   Trash2, 
+  WifiOff, 
+  Wifi, 
+  Cloud, 
   HardDrive,
+  RefreshCw,
+  AlertCircle,
   CheckCircle2,
-  Wifi,
-  WifiOff,
-  RefreshCw
+  BookOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
+import { formatDistanceToNow } from 'date-fns';
 
-interface DownloadedContent {
+interface AvailableTopic {
   id: string;
-  topicId: string;
-  topicTitle: string;
+  title: string;
   lessonsCount: number;
-  sizeBytes: number;
-  downloadedAt: Date;
 }
-
-// Mock data
-const mockDownloads: DownloadedContent[] = [
-  {
-    id: '1',
-    topicId: '1',
-    topicTitle: 'Number Bases',
-    lessonsCount: 4,
-    sizeBytes: 2500000,
-    downloadedAt: new Date(Date.now() - 86400000)
-  },
-  {
-    id: '2',
-    topicId: '2',
-    topicTitle: 'Fractions & Percentages',
-    lessonsCount: 5,
-    sizeBytes: 3200000,
-    downloadedAt: new Date(Date.now() - 172800000)
-  }
-];
-
-const availableTopics = [
-  { id: '3', title: 'Algebraic Expressions', lessons: 6, size: 4100000 },
-  { id: '4', title: 'Linear Equations', lessons: 4, size: 2800000 },
-  { id: '5', title: 'Quadratic Equations', lessons: 5, size: 3500000 },
-];
 
 export default function Downloads() {
   const { user } = useAuth();
-  const { toast } = useToast();
-  const [downloads, setDownloads] = useState<DownloadedContent[]>(mockDownloads);
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const {
+    offlineContent,
+    pendingSync,
+    isOnline,
+    totalSize,
+    downloadTopic,
+    removeOfflineContent,
+    syncPendingProgress,
+    clearAllOfflineContent,
+  } = useOfflineStorage();
+
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [availableTopics, setAvailableTopics] = useState<AvailableTopic[]>([]);
   const [downloading, setDownloading] = useState<string | null>(null);
 
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
+    fetchAvailableTopics();
+  }, [offlineContent]);
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+  const fetchAvailableTopics = async () => {
+    try {
+      const { data: topics } = await supabase
+        .from('topics')
+        .select('id, title')
+        .order('order_index')
+        .limit(10);
 
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
+      const { data: lessons } = await supabase
+        .from('lessons')
+        .select('topic_id');
 
-  const formatSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+      const topicsWithLessonCounts = (topics || []).map(topic => ({
+        id: topic.id,
+        title: topic.title,
+        lessonsCount: lessons?.filter(l => l.topic_id === topic.id).length || 0,
+      })).filter(t => !offlineContent.some(c => c.id === t.id));
+
+      setAvailableTopics(topicsWithLessonCounts);
+    } catch (error) {
+      console.error('Error fetching topics:', error);
+    }
   };
 
-  const totalSize = downloads.reduce((acc, d) => acc + d.sizeBytes, 0);
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  };
 
-  const handleDownload = async (topicId: string, topicTitle: string, lessons: number, size: number) => {
+  const handleSync = async () => {
+    setIsSyncing(true);
+    await syncPendingProgress();
+    setIsSyncing(false);
+  };
+
+  const handleDownload = async (topicId: string) => {
     setDownloading(topicId);
-    
-    // Simulate download
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    const newDownload: DownloadedContent = {
-      id: Date.now().toString(),
-      topicId,
-      topicTitle,
-      lessonsCount: lessons,
-      sizeBytes: size,
-      downloadedAt: new Date()
-    };
-
-    setDownloads(prev => [...prev, newDownload]);
+    await downloadTopic(topicId);
     setDownloading(null);
-
-    toast({
-      title: "Downloaded successfully!",
-      description: `${topicTitle} is now available offline.`
-    });
+    fetchAvailableTopics();
   };
 
-  const handleDelete = (id: string) => {
-    setDownloads(prev => prev.filter(d => d.id !== id));
-    toast({
-      title: "Removed from downloads",
-      description: "The content has been deleted."
-    });
-  };
+  // Estimate storage usage (localStorage typically has 5-10MB limit)
+  const maxStorage = 5 * 1024 * 1024; // 5MB estimate
+  const storagePercentage = Math.min((totalSize / maxStorage) * 100, 100);
 
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background border-b px-4 py-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-display font-bold">Offline Downloads</h1>
-          <Badge variant={isOnline ? "default" : "secondary"} className="gap-1">
-            {isOnline ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-            {isOnline ? 'Online' : 'Offline'}
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b px-4 py-4">
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-xl font-display font-bold">Offline Content</h1>
+          <Badge 
+            variant={isOnline ? "default" : "secondary"} 
+            className="gap-1"
+          >
+            {isOnline ? (
+              <>
+                <Wifi className="h-3 w-3" />
+                Online
+              </>
+            ) : (
+              <>
+                <WifiOff className="h-3 w-3" />
+                Offline
+              </>
+            )}
           </Badge>
         </div>
-      </div>
 
-      <div className="px-4 py-4 space-y-6">
-        {/* Storage Info */}
-        <Card className="bg-gradient-to-r from-primary/5 to-accent/5 border-0">
+        {/* Storage Usage */}
+        <Card className="bg-muted/50 border-0">
           <CardContent className="p-4">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <HardDrive className="h-5 w-5 text-primary" />
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <HardDrive className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Storage Used</span>
               </div>
-              <div>
-                <p className="font-medium">Storage Used</p>
-                <p className="text-sm text-muted-foreground">
-                  {formatSize(totalSize)} • {downloads.length} topics
-                </p>
-              </div>
+              <span className="text-sm font-bold">{formatBytes(totalSize)}</span>
             </div>
-            <Progress value={Math.min((totalSize / 50000000) * 100, 100)} className="h-2" />
-            <p className="text-xs text-muted-foreground mt-1">
-              {formatSize(50000000 - totalSize)} remaining
+            <Progress value={storagePercentage} className="h-2" />
+            <p className="text-xs text-muted-foreground mt-2">
+              {offlineContent.length} items saved for offline use
             </p>
           </CardContent>
         </Card>
+      </div>
 
-        {/* Downloaded Content */}
-        <div>
-          <h2 className="font-semibold mb-3 flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-success" />
-            Downloaded Topics
-          </h2>
-          
-          {downloads.length === 0 ? (
-            <Card className="border-dashed">
-              <CardContent className="p-6 text-center text-muted-foreground">
-                <Download className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                <p>No downloads yet</p>
-                <p className="text-sm">Download topics to learn offline</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-2">
-              {downloads.map(download => (
-                <Card key={download.id}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-medium">{download.topicTitle}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {download.lessonsCount} lessons • {formatSize(download.sizeBytes)}
-                        </p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(download.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Available for Download */}
-        {isOnline && (
-          <div>
-            <h2 className="font-semibold mb-3 flex items-center gap-2">
-              <Download className="h-4 w-4" />
-              Available for Download
-            </h2>
-            
-            <div className="space-y-2">
-              {availableTopics
-                .filter(t => !downloads.some(d => d.topicId === t.id))
-                .map(topic => (
-                  <Card key={topic.id}>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-medium">{topic.title}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {topic.lessons} lessons • {formatSize(topic.size)}
-                          </p>
-                        </div>
-                        <Button
-                          size="sm"
-                          disabled={downloading === topic.id}
-                          onClick={() => handleDownload(topic.id, topic.title, topic.lessons, topic.size)}
-                        >
-                          {downloading === topic.id ? (
-                            <RefreshCw className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <>
-                              <Download className="h-4 w-4 mr-1" />
-                              Download
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-            </div>
-          </div>
-        )}
-
-        {/* Offline Notice */}
-        {!isOnline && (
-          <Card className="border-accent/30 bg-accent/5">
+      <div className="px-4 py-4 space-y-4">
+        {/* Sync Status */}
+        {pendingSync.length > 0 && (
+          <Card className="border-amber-500/50 bg-amber-500/10">
             <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <WifiOff className="h-5 w-5 text-accent mt-0.5" />
-                <div>
-                  <p className="font-medium">You're Offline</p>
-                  <p className="text-sm text-muted-foreground">
-                    Your downloaded content is available. Connect to the internet to download more topics or sync your progress.
-                  </p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="h-5 w-5 text-amber-500" />
+                  <div>
+                    <p className="text-sm font-medium">Progress Pending Sync</p>
+                    <p className="text-xs text-muted-foreground">
+                      {pendingSync.length} lesson{pendingSync.length > 1 ? 's' : ''} to sync
+                    </p>
+                  </div>
                 </div>
+                <Button 
+                  size="sm" 
+                  onClick={handleSync}
+                  disabled={!isOnline || isSyncing}
+                >
+                  {isSyncing ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Cloud className="h-4 w-4 mr-1" />
+                      Sync
+                    </>
+                  )}
+                </Button>
               </div>
             </CardContent>
           </Card>
         )}
+
+        {/* Downloaded Content */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold">Downloaded Content</h2>
+            {offlineContent.length > 0 && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={clearAllOfflineContent}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Clear All
+              </Button>
+            )}
+          </div>
+
+          {offlineContent.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <Download className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="font-semibold mb-2">No Offline Content</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Download topics and lessons to study without internet connection.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            offlineContent.map((content) => (
+              <Card key={content.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-4">
+                    <div className={cn(
+                      "h-10 w-10 rounded-lg flex items-center justify-center shrink-0",
+                      "bg-primary/10 text-primary"
+                    )}>
+                      <BookOpen className="h-5 w-5" />
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <h3 className="font-semibold text-sm">{content.title}</h3>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="secondary" className="text-xs">
+                              {content.type === 'topic' ? 'Topic' : 'Lesson'}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {formatBytes(content.size)}
+                            </span>
+                          </div>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          onClick={() => removeOfflineContent(content.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                        <CheckCircle2 className="h-3 w-3 text-green-500" />
+                        Downloaded {formatDistanceToNow(new Date(content.downloadedAt), { addSuffix: true })}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+
+        {/* Available for Download */}
+        {isOnline && availableTopics.length > 0 && (
+          <div className="space-y-3">
+            <h2 className="font-semibold">Available for Download</h2>
+            {availableTopics.slice(0, 5).map((topic) => (
+              <Card key={topic.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-sm">{topic.title}</h3>
+                      <p className="text-xs text-muted-foreground">
+                        {topic.lessonsCount} lessons
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => handleDownload(topic.id)}
+                      disabled={downloading === topic.id}
+                    >
+                      {downloading === topic.id ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Download className="h-4 w-4 mr-1" />
+                          Download
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* Offline Tips */}
+        <Card className="bg-muted/30 border-dashed">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">💡 Offline Study Tips</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground space-y-2">
+            <p>• Download topics before going offline</p>
+            <p>• Your progress is saved locally and synced when online</p>
+            <p>• AI Tutor has limited offline responses</p>
+            <p>• Keep storage under 5MB for best performance</p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

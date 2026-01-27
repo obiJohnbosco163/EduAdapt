@@ -200,14 +200,14 @@ export default function Dashboard() {
 
           {/* Quick Actions */}
           <div className="grid grid-cols-2 gap-3">
-            <Link to="/topics">
+            <Link to="/subjects">
               <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-primary/20">
                 <CardContent className="p-4 flex flex-col items-center text-center">
                   <div className="p-3 rounded-xl bg-primary/10 mb-3">
                     <BookOpen className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="font-semibold">All Topics</h3>
-                  <p className="text-xs text-muted-foreground mt-1">Browse WAEC syllabus</p>
+                  <h3 className="font-semibold">All Subjects</h3>
+                  <p className="text-xs text-muted-foreground mt-1">Browse WAEC subjects</p>
                 </CardContent>
               </Card>
             </Link>
@@ -228,7 +228,7 @@ export default function Dashboard() {
           <div>
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-display font-bold text-lg">Your Progress</h2>
-              <Link to="/topics" className="text-sm text-primary font-medium">
+              <Link to="/subjects" className="text-sm text-primary font-medium">
                 View all
               </Link>
             </div>

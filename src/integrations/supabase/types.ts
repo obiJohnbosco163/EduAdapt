@@ -339,6 +339,36 @@ export type Database = {
         }
         Relationships: []
       }
+      subjects: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+          order_index: number
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          order_index?: number
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          order_index?: number
+        }
+        Relationships: []
+      }
       topics: {
         Row: {
           created_at: string
@@ -348,6 +378,7 @@ export type Database = {
           id: string
           is_premium: boolean | null
           order_index: number
+          subject_id: string | null
           title: string
           waec_chapter: string | null
         }
@@ -359,6 +390,7 @@ export type Database = {
           id?: string
           is_premium?: boolean | null
           order_index: number
+          subject_id?: string | null
           title: string
           waec_chapter?: string | null
         }
@@ -370,10 +402,19 @@ export type Database = {
           id?: string
           is_premium?: boolean | null
           order_index?: number
+          subject_id?: string | null
           title?: string
           waec_chapter?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "topics_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_progress: {
         Row: {
