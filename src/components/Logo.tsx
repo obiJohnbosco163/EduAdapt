@@ -1,4 +1,4 @@
-import { BookOpen, Sparkles } from 'lucide-react';
+import logoImg from '@/assets/eduadapt-logo.png';
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg';
@@ -7,27 +7,19 @@ interface LogoProps {
 
 export function Logo({ size = 'md', showText = true }: LogoProps) {
   const sizes = {
-    sm: { icon: 24, text: 'text-lg' },
-    md: { icon: 32, text: 'text-xl' },
-    lg: { icon: 48, text: 'text-3xl' }
+    sm: { img: 'h-8 w-8', text: 'text-lg' },
+    md: { img: 'h-10 w-10', text: 'text-xl' },
+    lg: { img: 'h-14 w-14', text: 'text-3xl' }
   };
 
-  const { icon, text } = sizes[size];
+  const { img, text } = sizes[size];
 
   return (
     <div className="flex items-center gap-2">
-      <div className="relative">
-        <div className="rounded-xl bg-primary p-2 shadow-lg">
-          <BookOpen className="text-primary-foreground" size={icon} />
-        </div>
-        <Sparkles 
-          className="absolute -top-1 -right-1 text-accent animate-pulse-soft" 
-          size={icon / 2} 
-        />
-      </div>
+      <img src={logoImg} alt="EduAdapt" className={`${img} rounded-lg`} />
       {showText && (
         <div className="flex flex-col">
-          <span className={`font-display font-bold ${text} text-primary`}>
+          <span className={`font-display font-bold ${text} text-foreground`}>
             EduAdapt
           </span>
           {size !== 'sm' && (
