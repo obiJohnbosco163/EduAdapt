@@ -8,20 +8,12 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { 
-  User,
-  Settings,
-  LogOut,
-  Turtle,
-  Gauge,
-  Rocket,
-  BookOpen,
-  Target,
-  Zap,
-  Trophy,
-  ChevronRight,
-  Moon,
-  Sun
+import { Switch } from '@/components/ui/switch';
+import { useTheme } from '@/hooks/useTheme';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
+import {
+  Turtle, Gauge, Rocket, BookOpen, Target, Zap, Trophy,
+  ChevronRight, Moon, Sun, LogOut, Settings, Bell, BellOff
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -46,36 +38,41 @@ export default function Profile() {
   const navigate = useNavigate();
   const { user, profile, signOut, updateProfile } = useAuth();
   const { toast } = useToast();
+  const { theme, toggleTheme } = useTheme();
+  const { permission, supported, requestPermission } = usePushNotifications();
   const [selectedPace, setSelectedPace] = useState<LearningPace>((profile?.learning_pace as LearningPace) || 'average');
   const [selectedMode, setSelectedMode] = useState<LearningMode>((profile?.preferred_mode as LearningMode) || 'step-by-step');
-  const [isDark, setIsDark] = useState(false);
 
-  const handlePaceChange = async (pace: 'slow' | 'average' | 'fast') => {
+  const handlePaceChange = async (pace: LearningPace) => {
     setSelectedPace(pace);
     const { error } = await updateProfile({ learning_pace: pace });
-    if (!error) {
-      toast({ title: "Learning pace updated!" });
-    }
+    if (!error) toast({ title: "Learning pace updated!" });
   };
 
-  const handleModeChange = async (mode: 'step-by-step' | 'practice-heavy' | 'fast-revision' | 'challenge') => {
+  const handleModeChange = async (mode: LearningMode) => {
     setSelectedMode(mode);
     const { error } = await updateProfile({ preferred_mode: mode });
-    if (!error) {
-      toast({ title: "Learning mode updated!" });
-    }
+    if (!error) toast({ title: "Learning mode updated!" });
   };
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/auth');
+    navigate('/');
+  };
+
+  const handleNotificationToggle = async () => {
+    if (permission === 'granted') {
+      toast({ title: "Notifications are managed in your browser settings" });
+    } else {
+      const granted = await requestPermission();
+      toast({ title: granted ? "Notifications enabled! 🔔" : "Notifications blocked" });
+    }
   };
 
   const firstName = profile?.full_name?.split(' ')[0] || 'Student';
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      {/* Header */}
       <div className="gradient-hero px-4 py-8">
         <div className="max-w-lg mx-auto">
           <div className="flex items-center gap-4">
@@ -95,7 +92,6 @@ export default function Profile() {
 
       <div className="px-4 -mt-4 space-y-6">
         <div className="max-w-lg mx-auto space-y-6">
-          
           {/* Learning Pace */}
           <Card>
             <CardHeader className="pb-3">
@@ -108,23 +104,13 @@ export default function Profile() {
                   return (
                     <div
                       key={option.id}
-                      className={cn(
-                        "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all",
-                        selectedPace === option.id 
-                          ? "border-primary bg-primary/5" 
-                          : "hover:bg-muted/50"
-                      )}
+                      className={cn("flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all", selectedPace === option.id ? "border-primary bg-primary/5" : "hover:bg-muted/50")}
                       onClick={() => handlePaceChange(option.id)}
                     >
                       <RadioGroupItem value={option.id} id={`pace-${option.id}`} />
-                      <Icon className={cn(
-                        "h-5 w-5",
-                        selectedPace === option.id ? "text-primary" : "text-muted-foreground"
-                      )} />
+                      <Icon className={cn("h-5 w-5", selectedPace === option.id ? "text-primary" : "text-muted-foreground")} />
                       <div className="flex-1">
-                        <Label htmlFor={`pace-${option.id}`} className="cursor-pointer font-medium">
-                          {option.label}
-                        </Label>
+                        <Label htmlFor={`pace-${option.id}`} className="cursor-pointer font-medium">{option.label}</Label>
                         <p className="text-xs text-muted-foreground">{option.description}</p>
                       </div>
                     </div>
@@ -134,7 +120,7 @@ export default function Profile() {
             </CardContent>
           </Card>
 
-          {/* Default Learning Mode */}
+          {/* Learning Mode */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Default Learning Mode</CardTitle>
@@ -144,12 +130,7 @@ export default function Profile() {
                 {modeOptions.map(option => {
                   const Icon = option.icon;
                   return (
-                    <Button
-                      key={option.id}
-                      variant={selectedMode === option.id ? "default" : "outline"}
-                      className="h-auto py-3 flex-col gap-1"
-                      onClick={() => handleModeChange(option.id)}
-                    >
+                    <Button key={option.id} variant={selectedMode === option.id ? "default" : "outline"} className="h-auto py-3 flex-col gap-1" onClick={() => handleModeChange(option.id)}>
                       <Icon className="h-4 w-4" />
                       <span className="text-xs">{option.label}</span>
                     </Button>
@@ -159,50 +140,41 @@ export default function Profile() {
             </CardContent>
           </Card>
 
-          {/* Appearance */}
+          {/* Settings */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Appearance</CardTitle>
+              <CardTitle className="text-base">Settings</CardTitle>
             </CardHeader>
-            <CardContent className="pt-0">
+            <CardContent className="pt-0 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  {isDark ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-                  <span>Dark Mode</span>
+                  {theme === 'dark' ? <Moon className="h-5 w-5 text-muted-foreground" /> : <Sun className="h-5 w-5 text-muted-foreground" />}
+                  <span className="text-sm">Dark Mode</span>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsDark(!isDark)}
-                >
-                  {isDark ? 'On' : 'Off'}
-                </Button>
+                <Switch checked={theme === 'dark'} onCheckedChange={toggleTheme} />
               </div>
+              {supported && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {permission === 'granted' ? <Bell className="h-5 w-5 text-muted-foreground" /> : <BellOff className="h-5 w-5 text-muted-foreground" />}
+                    <span className="text-sm">Study Reminders</span>
+                  </div>
+                  <Switch checked={permission === 'granted'} onCheckedChange={handleNotificationToggle} />
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Actions */}
+          {/* Sign Out */}
           <Card>
             <CardContent className="p-0">
-              <button className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <Settings className="h-5 w-5 text-muted-foreground" />
-                  <span>App Settings</span>
-                </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground" />
-              </button>
-              <Separator />
-              <button 
-                onClick={handleSignOut}
-                className="w-full flex items-center gap-3 p-4 text-destructive hover:bg-destructive/5 transition-colors"
-              >
+              <button onClick={handleSignOut} className="w-full flex items-center gap-3 p-4 text-destructive hover:bg-destructive/5 transition-colors rounded-lg">
                 <LogOut className="h-5 w-5" />
                 <span>Sign Out</span>
               </button>
             </CardContent>
           </Card>
 
-          {/* App Info */}
           <div className="text-center py-4">
             <Logo size="sm" />
             <p className="text-xs text-muted-foreground mt-2">Version 1.0.0</p>
