@@ -28,7 +28,6 @@ export function usePushNotifications() {
             icon: '/favicon.ico',
             badge: '/favicon.ico',
             tag: 'study-reminder',
-            renotify: true,
           });
         });
       }
