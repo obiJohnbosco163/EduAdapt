@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate, Link } from 'react-router-dom';
+import { Navigate, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,11 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import logoImg from '@/assets/eduadapt-logo.png';
 
 export default function Auth() {
   const { user, profile, signIn, signUp, loading } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
@@ -57,9 +58,20 @@ export default function Auth() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
+        {/* Back button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate(-1)}
+          className="mb-4 -ml-2 text-muted-foreground"
+        >
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          Back
+        </Button>
+
         <div className="flex justify-center mb-8">
           <div className="flex items-center gap-2.5">
-            <img src={logoImg} alt="EduAdapt" className="h-10 w-10 rounded-lg" />
+            <img src={logoImg} alt="EduAdapt" className="h-12 w-12 rounded-lg" />
             <span className="font-display font-bold text-2xl text-foreground">EduAdapt</span>
           </div>
         </div>
