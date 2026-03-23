@@ -21,6 +21,9 @@ import Lesson from "./pages/Lesson";
 import AITutor from "./pages/AITutor";
 import Downloads from "./pages/Downloads";
 import Profile from "./pages/Profile";
+import Pricing from "./pages/Pricing";
+import Achievements from "./pages/Achievements";
+import Results from "./pages/Results";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +40,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/pricing" element={<Pricing />} />
             <Route path="/onboarding" element={
               <ProtectedRoute requireOnboarding={false}><Onboarding /></ProtectedRoute>
             } />
@@ -50,6 +54,8 @@ const App = () => (
               <Route path="/ai-tutor" element={<AITutor />} />
               <Route path="/downloads" element={<Downloads />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/achievements" element={<Achievements />} />
+              <Route path="/results" element={<Results />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

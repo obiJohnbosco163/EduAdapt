@@ -163,26 +163,34 @@ export default function Dashboard() {
           )}
 
           {/* Quick Actions */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <Link to="/subjects">
               <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-primary/20">
-                <CardContent className="p-4 flex flex-col items-center text-center">
-                  <div className="p-3 rounded-xl bg-primary/10 mb-3">
-                    <BookOpen className="h-6 w-6 text-primary" />
+                <CardContent className="p-3 flex flex-col items-center text-center">
+                  <div className="p-2.5 rounded-xl bg-primary/10 mb-2">
+                    <BookOpen className="h-5 w-5 text-primary" />
                   </div>
-                  <h3 className="font-semibold text-sm">All Subjects</h3>
-                  <p className="text-xs text-muted-foreground mt-1">Browse WAEC subjects</p>
+                  <h3 className="font-semibold text-xs">Subjects</h3>
                 </CardContent>
               </Card>
             </Link>
             <Link to="/ai-tutor">
               <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-accent/20">
-                <CardContent className="p-4 flex flex-col items-center text-center">
-                  <div className="p-3 rounded-xl bg-accent/10 mb-3">
-                    <Sparkles className="h-6 w-6 text-accent" />
+                <CardContent className="p-3 flex flex-col items-center text-center">
+                  <div className="p-2.5 rounded-xl bg-accent/10 mb-2">
+                    <Sparkles className="h-5 w-5 text-accent" />
                   </div>
-                  <h3 className="font-semibold text-sm">AI Tutor</h3>
-                  <p className="text-xs text-muted-foreground mt-1">Get help anytime</p>
+                  <h3 className="font-semibold text-xs">AI Tutor</h3>
+                </CardContent>
+              </Card>
+            </Link>
+            <Link to="/achievements">
+              <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-eduadapt-purple/20">
+                <CardContent className="p-3 flex flex-col items-center text-center">
+                  <div className="p-2.5 rounded-xl bg-eduadapt-purple/10 mb-2">
+                    <Award className="h-5 w-5 text-eduadapt-purple" />
+                  </div>
+                  <h3 className="font-semibold text-xs">Achievements</h3>
                 </CardContent>
               </Card>
             </Link>

@@ -7,15 +7,15 @@ interface LogoProps {
 
 export function Logo({ size = 'md', showText = true }: LogoProps) {
   const sizes = {
-    sm: { img: 'h-8 w-8', text: 'text-lg' },
-    md: { img: 'h-10 w-10', text: 'text-xl' },
-    lg: { img: 'h-14 w-14', text: 'text-3xl' }
+    sm: { img: 'h-10 w-10', text: 'text-lg' },
+    md: { img: 'h-12 w-12', text: 'text-xl' },
+    lg: { img: 'h-16 w-16', text: 'text-3xl' }
   };
 
   const { img, text } = sizes[size];
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2.5">
       <img src={logoImg} alt="EduAdapt" className={`${img} rounded-lg`} />
       {showText && (
         <div className="flex flex-col">

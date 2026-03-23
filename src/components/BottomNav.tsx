@@ -1,12 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, BookOpen, MessageCircle, Download, User } from 'lucide-react';
+import { Home, BookOpen, MessageCircle, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { path: '/dashboard', icon: Home, label: 'Home' },
   { path: '/subjects', icon: BookOpen, label: 'Subjects' },
   { path: '/ai-tutor', icon: MessageCircle, label: 'AI Tutor' },
-  { path: '/downloads', icon: Download, label: 'Offline' },
   { path: '/profile', icon: User, label: 'Profile' },
 ];
 
